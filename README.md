@@ -5,7 +5,7 @@ Simple project for searching open ports of a specific ip.
 ### Dev
 
 ```
-cargo run -- -j <ip_address>
+cargo run -- -j 10 <ip_address>
 ```
 
 ### Build
