@@ -1,11 +1,13 @@
-use std::net::{IpAddr, TcpStream};
+use std::net::{TcpStream, IpAddr};
 use std::{process, io};
-use std::io::{Write}; 
+use std::io::Write; 
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::str::FromStr;
 
+#[derive(Debug)]
 struct Arguments {
     flag: String,
-    ip_addr: String,
+    ip_addr: IpAddr,
     threads: u16
 
 }
@@ -15,14 +17,16 @@ const MAX: u16 = 65535;
 impl Arguments {
     fn new(args: &[String]) -> Result<Arguments, &'static str> {
         if args.len() < 2 {
-            return Ok(Arguments { flag: "".to_string(), ip_addr: "127.0.0.1".to_string(), threads: 4 });
+            // IpAddr from 127.0.0.1
+            let ip_addr = IpAddr::from_str("127.0.0.1").unwrap();
+            return Ok(Arguments { flag: "".to_string(), ip_addr: ip_addr, threads: 4 });
         } else if args.len() > 4 {
             return Err("Too many arguments");
         }
 
         let f = args[1].clone();
 
-        if let Ok(ip_addr) = args[2].parse() {
+        if let Ok(ip_addr) = IpAddr::from_str(&f) {
             return Ok(Arguments { flag: f, ip_addr, threads: 4 });
         } else {
             let flag = args[1].clone();
@@ -37,9 +41,9 @@ impl Arguments {
                     Ok(t) => t,
                     Err(_) => return Err("Failed to parse thread number")
                 };
-                let ip_addr = match args[3].parse::<String>() {
-                    Ok(ip) => ip,
-                    Err(_) => return Err("Failed to parse IP address")
+                let ip_addr = match IpAddr::from_str(&args[3]) {
+                    Ok(s) => s,
+                    Err(_) => return Err("not a valid IPADDR; must be IPv4 or IPv6"),
                 };
                 return Ok(Arguments {threads, flag, ip_addr});
             } else {
@@ -49,10 +53,10 @@ impl Arguments {
     }
 }
 
-fn scan(tx: Sender<u16>, start_port: u16, addr: String, num_threads: u16) {
+fn scan(tx: Sender<u16>, start_port: u16, addr: IpAddr, num_threads: u16) {
     let mut port: u16 = start_port + 1;
     loop {
-        match TcpStream::connect((addr.as_str(), port)) {
+        match TcpStream::connect((addr, port)) {
             Ok(_) => {
                 print!(".");
                 io::stdout().flush().unwrap();
